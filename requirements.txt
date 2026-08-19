@@ -2,5 +2,7 @@ streamlit
 pandas
 plotly
 yfinance
-anthropic
+beautifulsoup4
 requests
+googlesearch-python
+anthropic
