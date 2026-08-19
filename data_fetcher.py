@@ -33,18 +33,14 @@ def piyasa_ozeti_al():
 
 def forum_yorumlarini_getir(hisse_kodu):
     hisse_kodu = str(hisse_kodu).upper()
-    simule_yorumlar = {
-        'THYAO': [
-            {'yazar': 'BorsaKaplani', 'zaman': '5 dk önce', 'yorum': 'Yolcu sayıları rekor kırdı, bilanço beklentisi çok yüksek.', 'tip': ' AL', 'begeni': 242},
-            {'yazar': 'TeknikAnalizci', 'zaman': '18 dk önce', 'yorum': 'Direnç bölgesine yaklaştı, kısa vadeli kâr satışı gelebilir.', 'tip': ' SAT', 'begeni': 89}
-        ],
-        'HKTM': [
-            {'yazar': 'TeknolojiAvcisi', 'zaman': '12 dk önce', 'yorum': 'Yeni robotik otomasyon siparişi aldılar, KAP haberi harika!', 'tip': ' AL', 'begeni': 178},
-            {'yazar': 'BorsaUstad34', 'zaman': '30 dk önce', 'yorum': 'Trend kanalı içinde düzeltmesini tamamladı, hacim artıyor.', 'tip': ' AL', 'begeni': 95}
-        ]
-    }
-    varsayilan = [
-        {'yazar': 'BorsaUstad34', 'zaman': '15 dk önce', 'yorum': f'{hisse_kodu} için teknik seviyeler korunuyor, hacim takibi önemli.', 'tip': ' AL', 'begeni': 95},
-        {'yazar': 'PiyasaAnaliz', 'zaman': '40 dk önce', 'yorum': f'{hisse_kodu} tarafında genel piyasa hareketine paralel seyir var.', 'tip': ' TUT', 'begeni': 52}
+    
+    # Her hisse için zengin, kaydırmaya doyuracak popüler yorum havuzu
+    return [
+        {'yazar': 'BorsaUstad34', 'zaman': '5 dk önce', 'yorum': f'{hisse_kodu} için kritik direnç seviyeleri test ediliyor, hacim harika.', 'tip': 'AL', 'begeni': 245},
+        {'yazar': 'PiyasaAnaliz', 'zaman': '14 dk önce', 'yorum': f'Bilanço dönemi yaklaşırken {hisse_kodu} tarafında kurumsal toplama var.', 'tip': 'AL', 'begeni': 188},
+        {'yazar': 'TeknikKurt', 'zaman': '25 dk önce', 'yorum': f'Kısa vadeli indikatörler şişti, ufak bir düzeltme gelebilir ama trend pozitif.', 'tip': 'TUT', 'begeni': 132},
+        {'yazar': 'AnadoluTrader', 'zaman': '42 dk önce', 'yorum': f'Şirketin son yatırımları orta vadede çok ciddi kazanç getirecektir.', 'tip': 'AL', 'begeni': 98},
+        {'yazar': 'BorsaMatematik', 'zaman': '1 saat önce', 'yorum': f'{hisse_kodu} destek noktasından çok güzel tepki aldı, hareketli ortalamanın üstünde.', 'tip': 'AL', 'begeni': 76},
+        {'yazar': 'SpekAvcisi', 'zaman': '2 saat önce', 'yorum': f'Tahtada hacim sığlaşdı, kademeleri dikkatli takip etmekte fayda var.', 'tip': 'TUT', 'begeni': 45},
+        {'yazar': 'YatirimciPencesi', 'zaman': '3 saat önce', 'yorum': f'Sektör ortalamasına göre oldukça ucuz kalmış bir hisse, potansiyeli yüksek.', 'tip': 'AL', 'begeni': 34}
     ]
-    return simule_yorumlar.get(hisse_kodu, varsayilan)
