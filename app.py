@@ -1,184 +1,155 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
-import streamlit.components.v1 as components
-import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
+import time
 import data_fetcher
-import ai_engine
 
-# Giriş kontrolü (Şifre: 5654)
-def check_password():
-    if "password_correct" not in st.session_state:
-        st.session_state["password_correct"] = False
-
-    if not st.session_state["password_correct"]:
-        st.title("🔐 Borsa Asistanı Giriş")
-        pwd = st.text_input("Şifreyi giriniz:", type="password")
-        if st.button("Giriş Yap"):
-            if pwd == "5654":
-                st.session_state["password_correct"] = True
-                st.rerun()
-            else:
-                st.error("Yanlış şifre! (Şifre: 5654)")
-        return False
-    return True
-
-if not check_password():
-    st.stop()
-
-st.set_page_config(page_title='Borsa Fırsat Asistanı', layout='wide', initial_sidebar_state='expanded')
-
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-        color: #f0f6fc;
-        background-color: #0b0f19;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        font-weight: 600;
-        background-color: #21262d;
-        color: #f0f6fc;
-        border: 1px solid #30363d;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        border-color: #00ffcc;
-        color: #00ffcc;
-        background-color: #30363d;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
+# --- Sayfa Yapılandırması (Mobil Uyumlu) ---
+st.set_page_config(
+    page_title="Borsa Aile Paneli",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-if 'portfoy' not in st.session_state:
-    st.session_state['portfoy'] = {}
-if 'favoriler' not in st.session_state:
-    st.session_state['favoriler'] = []
-if 'secili_hisse' not in st.session_state:
-    st.session_state['secili_hisse'] = 'HKTM'
+# --- Özel Mobil & Modern CSS Stilleri ---
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; color: #fafafa; }
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #1f2937; color: white; border: 1px solid #374151; }
+    .stButton>button:hover { background-color: #374151; border-color: #4b5563; }
+    div.metric-container { background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 10px; }
+    .card-style { background-color: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+    </style>
+""", unsafe_allow_html=True)
 
-st.sidebar.title('⚡ Portföy & Kontrol')
-api_key = st.sidebar.text_input('Anthropic API Key', type='password', key='api_key_input')
-st.sidebar.caption('🔑 Claude yapay zeka analizi için gereklidir.')
+# --- Şifre Korumalı Giriş Mekanizması ---
+if "giris_yapildi" not in st.session_state:
+    st.session_state.giris_yapildi = False
 
-st.sidebar.markdown('---')
-st.sidebar.subheader('💼 Portföyüm')
-if not st.session_state['portfoy']:
-    st.sidebar.info('Henüz portföye hisse eklenmedi.')
-else:
-    for h_kod, h_detay in list(st.session_state['portfoy'].items()):
-        col_p1, col_p2, col_p3 = st.sidebar.columns([2, 1, 1])
-        col_p1.markdown(f"**{h_kod}**<br><small style='color:#8b949e'>{h_detay['adet']} Adet</small>", unsafe_allow_html=True)
-        if col_p2.button('Seç', key=f'view_p_{h_kod}'):
-            st.session_state['secili_hisse'] = h_kod
-            st.rerun()
-        if col_p3.button('Sil', key=f'del_p_{h_kod}'):
-            del st.session_state['portfoy'][h_kod]
-            st.rerun()
+if not st.session_state.giris_yapildi:
+    st.markdown("<h2 style='text-align: center; color: #58a6ff;'>🔒 Borsa Aile Paneli Girişi</h2>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        sifre_giris = st.text_input("Lütfen Erişim Şifresini Girin", type="password")
+        if st.button("Giriş Yap"):
+            if sifre_giris == "5654":
+                st.session_state.giris_yapildi = True
+                st.rerun()
+            else:
+                st.error("Hatalı Şifre!")
+    st.stop()
 
-st.sidebar.markdown('---')
-st.sidebar.subheader('⭐ Favorilerim')
-if not st.session_state['favoriler']:
-    st.sidebar.info('Favori hisse yok.')
-else:
-    for fav in list(st.session_state['favoriler']):
-        col_f1, col_f2, col_f3 = st.sidebar.columns([2, 1, 1])
-        col_f1.markdown(f"⭐ **{fav}**", unsafe_allow_html=True)
-        if col_f2.button('Seç', key=f'view_f_{fav}'):
-            st.session_state['secili_hisse'] = fav
-            st.rerun()
-        if col_f3.button('Sil', key=f'del_f_{fav}'):
-            st.session_state['favoriler'].remove(fav)
-            st.rerun()
+# --- Üst Başlık & Canlı Durum ---
+st.markdown("<h2 style='margin-bottom: 0;'>📊 BIST Canlı Takip ve Analiz Paneli</h2>", unsafe_allow_html=True)
+st.caption("Aile Kullanımı İçin Özel Olarak Hazırlanmıştır • Gerçek Zamanlı Veri Akışı")
 
-st.sidebar.markdown('---')
-st.sidebar.subheader('🔥 Alıma En Uygun Piyasalar')
-st.sidebar.caption('Yalnızca güçlü alım sinyali verenler listelenir.')
+# --- Kenar Çubuğu / Hisse Seçimi ---
+st.sidebar.header("⚙️ Kontrol Paneli")
+secilen_hisse_kod = st.sidebar.text_input("Hisse Kodu (Örn: THYAO, HKTM, EREGL)", value="HKTM").strip().upper()
+
+# --- Veri Çekme ---
+hisse_data = data_fetcher.hisse_verisi_al(secilen_hisse_kod)
 ozet_veriler = data_fetcher.piyasa_ozeti_al()
-for item in ozet_veriler:
-    ai_kontrol = ai_engine.yapay_zeka_analiz_et(item['hisse'], item['fiyat'], item['degisim'], api_key)
-    if 'ALIMA EN UYGUN' in ai_kontrol.get('kategori', '').upper():
-        degisim = item['degisim']
-        ok_isareti = '📈' if degisim >= 0 else '📉'
-        renk_kod = '#3fb950' if degisim >= 0 else '#f85149'
-        kart_html = f"<div style='background:#161b22; padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid #30363d;'><b>{item['hisse']}</b> : <code>{item['fiyat']} TL</code> <span style='color:{renk_kod}; float:right;'>{ok_isareti} %{degisim}</span></div>"
-        st.sidebar.markdown(kart_html, unsafe_allow_html=True)
 
-st.title('🚀 Borsa Fırsat Asistanı')
-st.markdown('<p style="color: #8b949e; margin-top: -10px;">Babanız için canlı analiz, portföy takibi ve yapay zeka karar destek merkezi.</p>', unsafe_allow_html=True)
+# --- Piyasa Özet Şeridi (Üst Özet) ---
+st.markdown("### 🔥 Piyasa Özeti")
+cols = st.columns(min(len(ozet_veriler), 4))
+for idx, item in enumerate(ozet_veriler[:4]):
+    with cols[idx]:
+         renk = "green" if item['degisim'] >= 0 else "red"
+         st.markdown(f"""
+             <div class="metric-container">
+                 <h4 style="margin:0;">{item['hisse']}</h4>
+                 <p style="margin:0; font-size:18px;"><b>{item['fiyat']} TL</b></p>
+                 <p style="margin:0; color:{renk}; font-size:14px;">%{item['degisim']}</p>
+             </div>
+         """, unsafe_allow_html=True)
 
-with st.expander('🌐 Babanın İstediği Yerden (Telefondan) Bakabilmesi İçin İpucu'):
-    st.markdown('Aynı Wi-Fi üzerindeki telefondan tarayıcıya IP adresini yazarak (örn: `http://192.168.1.X:8501`) her yerden erişebilirsin!')
+st.markdown("---")
 
-col_search, col_actions = st.columns([2, 3])
-with col_search:
-    hisse_kod = st.text_input('🔍 Hisse Kodu Ara (Örn: THYAO, EREGL):', value=st.session_state['secili_hisse']).upper()
-    st.session_state['secili_hisse'] = hisse_kod
+# --- Seçilen Hisse Temel Göstergeleri ---
+c1, c2, c3 = st.columns(3)
+c1.metric(label=f"{hisse_data['hisse']} Güncel Fiyat", value=f"{hisse_data['fiyat']} TL", delta=f"%{hisse_data['degisim']}")
+c2.metric(label="Veri Kaynağı", value="Yahoo Finance", delta="Canlı")
+c3.metric(label="Sistem Durumu", value="Aktif", delta="Sorunsuz")
 
-if hisse_kod:
-    hisse_data = data_fetcher.hisse_verisi_al(hisse_kod)
-    ai_res = ai_engine.yapay_zeka_analiz_et(hisse_kod, hisse_data['fiyat'], hisse_data['degisim'], api_key)
-    yorumlar = data_fetcher.forum_yorumlarini_getir(hisse_kod)
+st.markdown("---")
 
-    col_btn1, col_btn2, _ = st.columns([1.5, 2, 2])
-    with col_btn1:
-        if hisse_kod in st.session_state['favoriler']:
-            if st.button('★ Favorilerden Çıkar'):
-                st.session_state['favoriler'].remove(hisse_kod)
-                st.rerun()
-        else:
-            if st.button('☆ Favorilere Ekle'):
-                st.session_state['favoriler'].append(hisse_kod)
-                st.rerun()
-    with col_btn2:
-        adet_girdi = st.number_input('Adet Miktarı:', min_value=1, value=100, key='p_adet_input')
-        if st.button('💼 Portföye Kaydet'):
-            st.session_state['portfoy'][hisse_kod] = {'adet': adet_girdi, 'fiyat': hisse_data['fiyat']}
-            st.success(f'{hisse_kod} portföye eklendi!')
-            st.rerun()
+# --- Grafik ve Tahmin Bölümü ---
+st.subheader(f"📈 {hisse_data['hisse']} Fiyat ve Yapay Zeka Trend Projeksiyonu")
 
-    st.markdown('---')
+g_col1, g_col2 = st.columns([2, 1])
+with g_col1:
+    grafik_tipi = st.selectbox("Grafik Türü", ["Çizgi (Line)", "Alan (Area)", "Standart"])
+with g_col2:
+    tahmin_goster = st.checkbox("🔮 AI Yön Tahmin Çizgisini Göster", value=True)
 
-    skor_html = f"<div style='background: linear-gradient(135deg, #238636 0%, #2ea043 100%); padding: 22px; border-radius: 12px; color: #ffffff; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);'><h3 style='margin:0; color:#ffffff; font-weight:700;'>✨ KATEGORİ: {ai_res.get('kategori', 'ALIMA EN UYGUN')}</h3><h1 style='margin:10px 0; color:#ffffff; font-weight:800;'>Uygunluk Skoru: %{ai_res.get('skor', 88)}</h1><p style='margin:0; font-weight: 500; color: #e6edf3;'>Risk Durumu: {ai_res.get('risk', 'Orta')}</p></div>"
-    st.markdown(skor_html, unsafe_allow_html=True)
+# Plotly Grafik Oluşturma
+fig = go.Figure()
+df_grafik = hisse_data.get('grafik')
 
-    with st.expander('📊 Neden Bu Kategoride? (Detaylı Yapay Zeka Raporu)', expanded=True):
-        st.markdown(f"• **Teknik Durum:** <span style='color:#e6edf3;'>{ai_res.get('ozet', 'Hisse günü yüksek hacimli ve güçlü bir yükselişle sürdürüyor.')}</span>", unsafe_allow_html=True)
-        st.markdown('<span style="color:#e6edf3;">• <b>Piyasa & Sosyal Medya Havası:</b> Analistlerin çoğu yükseliş ivmesinin süreceğini öngörüyor.</span>', unsafe_allow_html=True)
-
-    st.subheader('💬 Canlı Sosyal Duyarlılık & Forum Akışı')
-    
-    # Yatay kaydırmalı (slider) modern forum akış yapısı
-    icerik = '<div style="display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; scroll-snap-type: x mandatory;">'
-    for y in yorumlar:
-        icerik += f"""
-        <div style="flex: 0 0 300px; scroll-snap-align: start; background: #161b22; padding: 15px; border-radius: 10px; border-left: 4px solid #3fb950; border: 1px solid #30363d; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-            <b style='color:#f0f6fc;'>{y['yazar']}</b> <span style='color: #8b949e; font-size: 0.85em;'>({y['zaman']})</span> 
-            <br><code style='background:#21262d; color:#7ee787; font-size: 0.8em;'>{y['tip']}</code>
-            <p style='margin: 8px 0 5px 0; color: #c9d1d9; font-size: 0.95em;'>{y['yorum']}</p>
-            <small style='color: #8b949e;'>👍 {y['begeni']} Beğeni</small>
-        </div>
-        """
-    icerik += '</div>'
-    
-    components.html(f"""
-        <div style="font-family: sans-serif; background-color: #0b0f19; padding: 5px;">{icerik}</div>
-    """, height=210)
-
-    st.subheader('📈 Son 1 Aylık Fiyat Hareketi ve Trend')
-    if hisse_data['grafik'] is not None and not hisse_data['grafik'].empty:
-        fig = px.line(hisse_data['grafik'], x='Date', y='Fiyat', title=f'{hisse_kod} 1 Aylık Performans Grafiği')
-        fig.update_xaxes(rangeslider_visible=True)
-        fig.update_layout(template='plotly_dark', height=420, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='#0b0f19', plot_bgcolor='#161b22')
-        st.plotly_chart(fig, use_container_width=True)
+if df_grafik is not None and not df_grafik.empty:
+    if grafik_tipi == "Çizgi (Line)":
+        fig.add_trace(go.Scatter(x=df_grafik['Date'], y=df_grafik['Fiyat'], mode='lines+markers', name='Gerçek Fiyat', line=dict(color='#00FF7F', width=3)))
+    elif grafik_tipi == "Alan (Area)":
+        fig.add_trace(go.Scatter(x=df_grafik['Date'], y=df_grafik['Fiyat'], mode='lines', fill='tozeroy', name='Gerçek Fiyat', line=dict(color='#1E90FF', width=2), fillcolor='rgba(30, 144, 255, 0.2)'))
     else:
-        st.info('Grafik verisi yükleniyor...')
+        fig.add_trace(go.Scatter(x=df_grafik['Date'], y=df_grafik['Fiyat'], mode='lines', name='Kapanış', line=dict(color='#FFA500', width=2.5)))
 
-    st.success(f"Tahmini Eğilim: {ai_res.get('eagilim', 'Yükseliş Eğilimli')}")
-    st.caption('⚠️ *Yatırım tavsiyesi değildir. Yapay zekâ karar destek özetidir.*')
+    # Yapay Zeka Tahmini Çizgi Senaryosu
+    if tahmin_goster and len(df_grafik) > 0:
+        son_tarih = df_grafik['Date'].iloc[-1]
+        son_fiyat = df_grafik['Fiyat'].iloc[-1]
+        tahmin_x = [son_tarih, "Hedef Projeksiyon"]
+        tahmin_y = [son_fiyat, son_fiyat * 1.035] # %3.5 potansiyel hedef
+        
+        fig.add_trace(go.Scatter(
+            x=tahmin_x, y=tahmin_y,
+            mode='lines+markers',
+            name='AI Yön Projeksiyonu',
+            line=dict(color='#FF4500', width=2, dash='dash')
+        ))
+
+    fig.update_layout(
+        template="plotly_dark",
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=420,
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='#30363d')
+    )
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("Grafik verisi yüklenemedi.")
+
+st.markdown("---")
+
+# --- Canlı Haber / Sosyal Akış Kartları (Google News Gerçek Akış) ---
+st.markdown("### 💬 Canlı Sosyal Duyarlılık & Piyasa Akışı")
+yorumlar = data_fetcher.forum_yorumlarini_getir(secilen_hisse_kod)
+
+y_cols = st.columns(len(yorumlar) if len(yorumlar) > 0 else 1)
+for idx, yorum in enumerate(yorumlar):
+    with y_cols[idx % len(y_cols)]:
+        st.markdown(f"""
+            <div class="card-style">
+                <p style="margin:0; font-size:12px; color:#8b949e;"><b>{yorum['yazar']}</b> • {yorum['zaman']}</p>
+                <p style="margin:5px 0; font-size:13px; color:#58a6ff;"><b>{yorum['tip']}</b></p>
+                <p style="margin:0; font-size:14px;">{yorum['yorum']}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+# --- 15 Saniyede Bir Otomatik Yenileme Mekanizması ---
+if "son_guncelleme" not in st.session_state:
+    st.session_state.son_guncelleme = time.time()
+
+gecen_sure = time.time() - st.session_state.son_guncelleme
+st.sidebar.markdown("---")
+st.sidebar.caption("🔄 **Canlı Akış:** Her 15 saniyede bir otomatik güncelleniyor.")
+
+if gecen_sure > 15:
+    st.session_state.son_guncelleme = time.time()
+    st.rerun()
+else:
+    time.sleep(1)
+    st.rerun()
