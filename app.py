@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 import data_fetcher
@@ -154,11 +155,9 @@ if hisse_kod:
     st.subheader('💬 Canlı Sosyal Duyarlılık & Forum Akışı')
     
     # Yatay kaydırmalı (slider) modern forum akış yapısı
-    yorumlar_html = """
-    <div style="display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; scroll-snap-type: x mandatory;">
-    """
+    icerik = '<div style="display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; scroll-snap-type: x mandatory;">'
     for y in yorumlar:
-        yorumlar_html += f"""
+        icerik += f"""
         <div style="flex: 0 0 300px; scroll-snap-align: start; background: #161b22; padding: 15px; border-radius: 10px; border-left: 4px solid #3fb950; border: 1px solid #30363d; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
             <b style='color:#f0f6fc;'>{y['yazar']}</b> <span style='color: #8b949e; font-size: 0.85em;'>({y['zaman']})</span> 
             <br><code style='background:#21262d; color:#7ee787; font-size: 0.8em;'>{y['tip']}</code>
@@ -166,8 +165,11 @@ if hisse_kod:
             <small style='color: #8b949e;'>👍 {y['begeni']} Beğeni</small>
         </div>
         """
-    yorumlar_html += "</div>"
-    st.markdown(yorumlar_html, unsafe_allow_html=True)
+    icerik += '</div>'
+    
+    components.html(f"""
+        <div style="font-family: sans-serif; background-color: #0b0f19; padding: 5px;">{icerik}</div>
+    """, height=210)
 
     st.subheader('📈 Son 1 Aylık Fiyat Hareketi ve Trend')
     if hisse_data['grafik'] is not None and not hisse_data['grafik'].empty:
