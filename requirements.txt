@@ -1,5 +1,6 @@
-streamlit  
-yfinance  
-plotly  
-requests  
-streamlit-autorefresh 
+streamlit
+pandas
+plotly
+yfinance
+anthropic
+requests
