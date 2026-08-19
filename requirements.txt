@@ -1,8 +1,5 @@
 streamlit
+yfinance
 pandas
 plotly
-yfinance
-beautifulsoup4
-requests
-googlesearch-python
-anthropic
+feedparser
