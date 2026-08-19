@@ -152,9 +152,22 @@ if hisse_kod:
         st.markdown('<span style="color:#e6edf3;">• <b>Piyasa & Sosyal Medya Havası:</b> Analistlerin çoğu yükseliş ivmesinin süreceğini öngörüyor.</span>', unsafe_allow_html=True)
 
     st.subheader('💬 Canlı Sosyal Duyarlılık & Forum Akışı')
+    
+    # Yatay kaydırmalı (slider) modern forum akış yapısı
+    yorumlar_html = """
+    <div style="display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; scroll-snap-type: x mandatory;">
+    """
     for y in yorumlar:
-        yorum_html = f"<div style='background: #161b22; padding: 15px; border-radius: 10px; border-left: 4px solid #3fb950; margin-bottom: 10px; border: 1px solid #30363d;'><b style='color:#f0f6fc;'>{y['yazar']}</b> <span style='color: #8b949e; font-size: 0.85em;'>({y['zaman']})</span> &nbsp;|&nbsp; <code style='background:#21262d; color:#7ee787;'>{y['tip']}</code><p style='margin: 8px 0 5px 0; color: #c9d1d9;'>{y['yorum']}</p><small style='color: #8b949e;'>👍 {y['begeni']} Beğeni</small></div>"
-        st.markdown(yorum_html, unsafe_allow_html=True)
+        yorumlar_html += f"""
+        <div style="flex: 0 0 300px; scroll-snap-align: start; background: #161b22; padding: 15px; border-radius: 10px; border-left: 4px solid #3fb950; border: 1px solid #30363d; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+            <b style='color:#f0f6fc;'>{y['yazar']}</b> <span style='color: #8b949e; font-size: 0.85em;'>({y['zaman']})</span> 
+            <br><code style='background:#21262d; color:#7ee787; font-size: 0.8em;'>{y['tip']}</code>
+            <p style='margin: 8px 0 5px 0; color: #c9d1d9; font-size: 0.95em;'>{y['yorum']}</p>
+            <small style='color: #8b949e;'>👍 {y['begeni']} Beğeni</small>
+        </div>
+        """
+    yorumlar_html += "</div>"
+    st.markdown(yorumlar_html, unsafe_allow_html=True)
 
     st.subheader('📈 Son 1 Aylık Fiyat Hareketi ve Trend')
     if hisse_data['grafik'] is not None and not hisse_data['grafik'].empty:
